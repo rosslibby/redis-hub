@@ -11,3 +11,8 @@ A minimal connection hub for Redis in Node.js:
 - Single source of config (URI/options via env)  
 - Works cleanly for pub/sub roles without accidental cross-use
 
+## Quick Start
+
+```ts
+// redis.ts
+export { redisClient } from '@notross/redis-hub';
