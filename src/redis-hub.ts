@@ -14,10 +14,12 @@ const logger = new Logger();
 export class RedisHub {
   private clients: Record<string, RedisClient> = {};
   private clientOptions: Record<string, RedisClientOptions> = {};
-  private defaultOptions: RedisClientOptions;
+  private defaultOptions: RedisClientOptions | undefined = {};
   public error: any | null = null;
   public status: string | null = null;
-  public connect: (clientId: string) => Promise<void> = this.client.bind(this);
+  public connect: (
+    clientId: string,
+  ) => Promise<RedisClient> = this.client.bind(this);
 
   constructor(
     loggerConfig: LoggerConfig = { logs: true }) {
@@ -38,10 +40,13 @@ export class RedisHub {
 
   private createClient(
     clientId: string,
-    options: RedisClientOptions = this.defaultOptions,
+    options?: RedisClientOptions,
   ): RedisClient {
-    if (typeof options === 'undefined') {
-      throw new Error('You must set your Redis client options. Either pass your client options as the second argument in createClient() or use setDefaultOptions().');
+    options = options ?? this.defaultOptions;
+    if (!options) {
+      throw new Error(
+        `No options provided for '${clientId}' and no default options exist.`
+      );
     }
     const client = createClient(options);
     this.handleClientEvents(client, clientId);
