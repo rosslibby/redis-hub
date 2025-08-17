@@ -12,6 +12,7 @@ const logger = new Logger();
  * are just distinct names.
  */
 export class RedisHub {
+  private defaultClientName: string = 'default';
   private clients: Record<string, RedisClient> = {};
   private clientOptions: Record<string, RedisClientOptions> = {};
   private defaultOptions: RedisClientOptions | undefined = {};
@@ -21,17 +22,37 @@ export class RedisHub {
     clientId: string,
   ) => Promise<RedisClient> = this.client.bind(this);
 
-  constructor(
-    loggerConfig: LoggerConfig = { logs: true }) {
-    logger.setup(loggerConfig);
+  constructor(loggerConfig?: LoggerConfig) {
+    this.configureLogger(loggerConfig);
+  }
+
+  public configureLogger(config: LoggerConfig = { logs: true }): void {
+    logger.setup(config);
+  }
+
+  public async getDefaultClient(): Promise<RedisClient> {
+    return await this.client(this.defaultClientName);
+  }
+
+  private setDefaultOptions(options: RedisClientOptions): void {
+    this.defaultOptions = options;
   }
 
   /**
    * Set the global default Redis options used when no per-client override exists.
    * @param options RedisClientOptions
+   * @param options.defaultClientName string
    */
-  public setDefaultOptions(options: RedisClientOptions): void {
-    this.defaultOptions = options;
+  public init(options: RedisClientOptions & {
+    defaultClientName?: string;
+  }): void {
+    const { defaultClientName, ...redisClientOptions } = options;
+
+    this.setDefaultOptions(redisClientOptions);
+
+    if (defaultClientName) {
+      this.defaultClientName = defaultClientName;
+    }
   }
 
   public getClientById(clientId: string): RedisClient | null {
