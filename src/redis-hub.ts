@@ -12,22 +12,19 @@ const logger = new Logger();
  * are just distinct names.
  */
 export class RedisHub {
+  private defaultClientName: string = 'default';
   private clients: Record<string, RedisClient> = {};
   private clientOptions: Record<string, RedisClientOptions> = {};
   private defaultOptions: RedisClientOptions | undefined = {};
+  public defaultClient: RedisClient;
   public error: any | null = null;
   public status: string | null = null;
   public connect: (
     clientId: string,
   ) => Promise<RedisClient> = this.client.bind(this);
 
-  constructor(options?: RedisClientOptions & {
-    loggerConfig?: LoggerConfig;
-  }) {
-    if (options) {
-      this.setDefaultOptions(options);
-      this.configureLogger(options.loggerConfig);
-    }
+  constructor(loggerConfig?: LoggerConfig) {
+    this.configureLogger(loggerConfig);
   }
 
   public configureLogger(config: LoggerConfig = { logs: true }): void {
@@ -40,6 +37,20 @@ export class RedisHub {
    */
   public setDefaultOptions(options: RedisClientOptions): void {
     this.defaultOptions = options;
+  }
+
+  public async init(options: RedisClientOptions & {
+    defaultClientName?: string;
+  }): Promise<void> {
+    const { defaultClientName, ...redisClientOptions } = options;
+
+    this.setDefaultOptions(redisClientOptions);
+
+    if (defaultClientName) {
+      this.defaultClientName = defaultClientName;
+    }
+
+    this.defaultClient = await this.client(this.defaultClientName);
   }
 
   public getClientById(clientId: string): RedisClient | null {
