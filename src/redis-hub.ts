@@ -21,9 +21,17 @@ export class RedisHub {
     clientId: string,
   ) => Promise<RedisClient> = this.client.bind(this);
 
-  constructor(
-    loggerConfig: LoggerConfig = { logs: true }) {
-    logger.setup(loggerConfig);
+  constructor(options?: RedisClientOptions & {
+    loggerConfig?: LoggerConfig;
+  }) {
+    if (options) {
+      this.setDefaultOptions(options);
+      this.configureLogger(options.loggerConfig);
+    }
+  }
+
+  public configureLogger(config: LoggerConfig = { logs: true }): void {
+    logger.setup(config);
   }
 
   /**
