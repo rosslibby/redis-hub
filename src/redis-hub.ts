@@ -16,7 +16,6 @@ export class RedisHub {
   private clients: Record<string, RedisClient> = {};
   private clientOptions: Record<string, RedisClientOptions> = {};
   private defaultOptions: RedisClientOptions | undefined = {};
-  public defaultClient: RedisClient;
   public error: any | null = null;
   public status: string | null = null;
   public connect: (
@@ -29,6 +28,10 @@ export class RedisHub {
 
   public configureLogger(config: LoggerConfig = { logs: true }): void {
     logger.setup(config);
+  }
+
+  public async getDefaultClient(): Promise<RedisClient> {
+    return await this.client(this.defaultClientName);
   }
 
   /**
@@ -49,8 +52,6 @@ export class RedisHub {
     if (defaultClientName) {
       this.defaultClientName = defaultClientName;
     }
-
-    this.defaultClient = await this.client(this.defaultClientName);
   }
 
   public getClientById(clientId: string): RedisClient | null {

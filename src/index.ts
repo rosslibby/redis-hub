@@ -17,4 +17,4 @@ const redisHub = getSharedHub();
 
 export default redisHub;
 export const redisClient = redisHub.client.bind(redisHub);
-export const defaultClient = redisHub.defaultClient;
+export const defaultClient = redisHub.getDefaultClient.bind(redisHub);
