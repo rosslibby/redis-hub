@@ -20,12 +20,32 @@ yarn add @notross/redis-hub
 
 ## Quick Start
 
+### Redis client
+```ts
+import { redisHub, defaultClient } from "redis-hub";
+
+// Initialize Redis Hub (optional but recommended)
+redisHub.init({
+  host: "localhost",
+  port: 6379,
+  defaultClientName: "my-default" // optional
+});
+
+// Use the default client without manual creation
+(async () => {
+  const client = await defaultClient();
+  await client.set("foo", "bar");
+  console.log(await client.get("foo")); // "bar"
+})();
+```
+
+### Redis Pub/Sub
 ```ts
 // redis.ts
 import redisHub, { redisClient } from '@notross/redis-hub';
 
 // Set global default options (optional)
-redisHub.setDefaultOptions({
+redisHub.init({
   url: process.env.REDIS_URL,
 });
 
@@ -41,6 +61,47 @@ await sub.subscribe('my-channel', (message) => {
 
 ```
 
+## Default Client
+
+In addition to named clients, Redis Hub exposes a default client for convenience.
+
+### Example: Key/Value
+
+```ts
+import { defaultClient } from "redis-hub";
+
+(async () => {
+  const client = await defaultClient();
+
+  await client.set("hello", "world");
+  console.log(await client.get("hello")); // "world"
+})();
+```
+
+### Example: Pub/Sub
+
+```ts
+import { defaultClient } from "redis-hub";
+
+(async () => {
+  const subscriber = await defaultClient();
+  const publisher = await defaultClient();
+
+  // Subscribe (supports pSubscribe for patterns)
+  await subscriber.pSubscribe("chat.*", (message, channel) => {
+    console.log(`Message on ${channel}: ${message}`);
+  });
+
+  // Publish
+  await publisher.publish("chat.room1", "Hello World!");
+})();
+```
+
+### Notes
+- The default client name is "default" unless overridden in `init(...)`.
+- Using multiple `defaultClient()` calls returns the same underlying client instance.
+- You can still create additional named clients via `redisHub.client("name")` when needed.
+
 ## API
 
 `redisClient(clientId: string, options?: RedisClientOptions): Promise<RedisClient>`
@@ -52,11 +113,11 @@ Get or create a named Redis client.
 
 💡 Tip: Same clientId always returns the same connected client.
 
-`redisHub.setDefaultOptions(options: RedisClientOptions): void`
+`redisHub.init(options: RedisClientOptions): void`
 
 Sets default Redis connection options, used when no per-client options are provided.
 ```typescript
-redisHub.setDefaultOptions({
+redisHub.init({
   url: 'redis://localhost:6379'
 });
 ```
@@ -110,7 +171,7 @@ await pub.publish('chat', 'Hello!');
 ## Config via Environment
 Typical usage is to set REDIS_URL or REDIS_URI and apply it as default options:
 ```typescript
-redisHub.setDefaultOptions({
+redisHub.init({
   url: process.env.REDIS_URL,
 });
 ```
