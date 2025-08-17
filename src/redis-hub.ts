@@ -34,17 +34,18 @@ export class RedisHub {
     return await this.client(this.defaultClientName);
   }
 
-  /**
-   * Set the global default Redis options used when no per-client override exists.
-   * @param options RedisClientOptions
-   */
-  public setDefaultOptions(options: RedisClientOptions): void {
+  private setDefaultOptions(options: RedisClientOptions): void {
     this.defaultOptions = options;
   }
 
-  public async init(options: RedisClientOptions & {
+  /**
+   * Set the global default Redis options used when no per-client override exists.
+   * @param options RedisClientOptions
+   * @param options.defaultClientName string
+   */
+  public init(options: RedisClientOptions & {
     defaultClientName?: string;
-  }): Promise<void> {
+  }): void {
     const { defaultClientName, ...redisClientOptions } = options;
 
     this.setDefaultOptions(redisClientOptions);
