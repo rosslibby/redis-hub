@@ -1,4 +1,5 @@
 # @notross/redis-hub
+[<img src="https://img.shields.io/npm/v/@notross/redis-hub" />](https://npmjs.com/package/@notross/redis-hub)
 
 A minimal connection hub for Redis in Node.js: **lazily creates and reuses named Redis clients** (e.g., `publisher`, `subscriber`, per-user, per-namespace) with centralized config and event tracking.
 
