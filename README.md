@@ -22,7 +22,7 @@ yarn add @notross/redis-hub
 
 ### Redis client
 ```ts
-import { redisHub, defaultClient } from "redis-hub";
+import { redisHub, defaultClient } from "@notross/redis-hub";
 
 // Initialize Redis Hub (optional but recommended)
 redisHub.init({
