@@ -1,5 +1,5 @@
 import { createClient, RedisClientOptions } from 'redis';
-import { RedisClient, LoggerConfig, LogResult } from './types';
+import { RedisClient, LoggerConfig, LogResult, ClientOptions } from './types';
 import { Logger } from './utils';
 
 const logger = new Logger();
@@ -16,6 +16,8 @@ export class RedisHub {
   private clients: Record<string, RedisClient> = {};
   private clientOptions: Record<string, RedisClientOptions> = {};
   private defaultOptions: RedisClientOptions | undefined = {};
+  private clientLogs: Record<string, LogResult[]> = {};
+  private clientLogging: Record<string, boolean> = {};
   public error: any | null = null;
   public status: string | null = null;
   public connect: (
@@ -43,10 +45,8 @@ export class RedisHub {
    * @param options RedisClientOptions
    * @param options.defaultClientName string
    */
-  public init(options: RedisClientOptions & {
-    defaultClientName?: string;
-  }): void {
-    const { defaultClientName, ...redisClientOptions } = options;
+  public init(options: ClientOptions): void {
+    const { defaultClientName, clientId, ...redisClientOptions } = options;
 
     this.setDefaultOptions(redisClientOptions);
 
@@ -61,15 +61,17 @@ export class RedisHub {
 
   private createClient(
     clientId: string,
-    options?: RedisClientOptions,
+    options: ClientOptions = {},
   ): RedisClient {
     options = options ?? this.defaultOptions;
     if (!options) {
       throw new Error(
         `No options provided for '${clientId}' and no default options exist.`
       );
+    } else {
+      this.clientLogging[clientId] = Boolean(options.logging);
     }
-    const client = createClient(options);
+    const client = createClient({ ...options, name: clientId });
     this.handleClientEvents(client, clientId);
     this.clients[clientId] = client;
     this.clientOptions[clientId] = options;
@@ -102,9 +104,9 @@ export class RedisHub {
       }
       return this.clients[clientId];
     }
-    const client = this.createClient(clientId, options);
-    await client.connect();
-    return client;
+    return this.createClient(clientId, options)
+      .connect()
+      .then((client) => client)
   }
 
   /**
