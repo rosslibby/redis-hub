@@ -46,6 +46,7 @@ function cleanPkg(config: any): any {
         ...exports['.'],
         import: exports['.'].import.replace(/dist\//, ''),
         require: exports['.'].require.replace(/dist\//, ''),
+        types: exports['.'].types.replace(/dist\//, ''),
       },
     },
   };

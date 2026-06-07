@@ -1,6 +1,11 @@
-import { createClient } from 'redis';
+import { createClient, RedisClientOptions } from 'redis';
 
 export type RedisClient = ReturnType<typeof createClient>;
+export type ClientOptions = RedisClientOptions & {
+  clientId?: string;
+  defaultClientName?: string;
+  logging?: boolean;
+}
 
 export type LoggerConfig = {
   callback?: LoggerCallback;

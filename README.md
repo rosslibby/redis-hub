@@ -23,21 +23,18 @@ yarn add @notross/redis-hub
 
 ### Redis client
 ```ts
-import { redisHub, defaultClient } from "redis-hub";
+import { redisHub, defaultClient } from "@notross/redis-hub";
 
 // Initialize Redis Hub (optional but recommended)
 redisHub.init({
-  host: "localhost",
-  port: 6379,
-  defaultClientName: "my-default" // optional
+  url: process.env.REDIS_URL,
 });
 
 // Use the default client without manual creation
-(async () => {
-  const client = await defaultClient();
-  await client.set("foo", "bar");
-  console.log(await client.get("foo")); // "bar"
-})();
+await defaultClient().then((client) => {
+  client.set('foo', 'bar');
+  client.get('foo').then(console.log); // bar
+})
 ```
 
 ### Redis Pub/Sub
@@ -46,18 +43,15 @@ redisHub.init({
 import redisHub, { redisClient } from '@notross/redis-hub';
 
 // Set global default options (optional)
-redisHub.init({
-  url: process.env.REDIS_URL,
-});
+redisHub.init({ url: process.env.REDIS_URL });
 
 // Publisher
-const pub = await redisClient('publisher');
-await pub.publish('my-channel', 'hello world');
+redisClient('publisher').then((pub) => pub.publish('my-channel', 'hello-world'));
 
 // Subscriber
 const sub = await redisClient('subscriber');
-await sub.subscribe('my-channel', (message) => {
-  console.log('Got message:', message);
+sub.subscribe('my-channel', (message) => {
+  console.log('Received message:', message);
 });
 
 ```
@@ -69,33 +63,29 @@ In addition to named clients, Redis Hub exposes a default client for convenience
 ### Example: Key/Value
 
 ```ts
-import { defaultClient } from "redis-hub";
+import { defaultClient } from "@notross/redis-hub";
 
-(async () => {
-  const client = await defaultClient();
-
-  await client.set("hello", "world");
-  console.log(await client.get("hello")); // "world"
-})();
+defaultClient().then(async (client) => {
+  await client.set('hello', 'world');
+  client.get('hello').then(console.log) // "world"
+});
 ```
 
 ### Example: Pub/Sub
 
 ```ts
-import { defaultClient } from "redis-hub";
+import { useClient } from "@notross/redis-hub";
 
-(async () => {
-  const subscriber = await defaultClient();
-  const publisher = await defaultClient();
+const subscriber = useClient('subscriber');
+const publisher = useClient('publisher');
 
-  // Subscribe (supports pSubscribe for patterns)
-  await subscriber.pSubscribe("chat.*", (message, channel) => {
-    console.log(`Message on ${channel}: ${message}`);
-  });
+// Subscribe (supports pSubscribe for patterns)
+subscriber.then((client) => client.pSubscribe('chat*', (message, channel) => {
+  console.log(`Message received on ${channel}: ${message}`);
+}));
 
-  // Publish
-  await publisher.publish("chat.room1", "Hello World!");
-})();
+// Publish
+publisher.publish('chat.room1', 'Hello, World!');
 ```
 
 ### Notes
@@ -162,19 +152,17 @@ const hub = new RedisHub({ logs: false });
 ## Pub/Sub Best Practices
 Because Redis doesn’t allow a single connection to both publish and subscribe without blocking, use distinct logical names:
 ```typescript
-const pub = await redisClient('publisher');
-const sub = await redisClient('subscriber');
+const pub = await useClient('publisher');
+const sub = await useClient('subscriber');
 
-await sub.subscribe('chat', (msg) => console.log('Got', msg));
-await pub.publish('chat', 'Hello!');
+sub.subscribe('chat', (msg) => console.log('Received message:', msg));
+pub.publish('chat', 'Hello!');
 ```
 
 ## Config via Environment
 Typical usage is to set REDIS_URL or REDIS_URI and apply it as default options:
 ```typescript
-redisHub.init({
-  url: process.env.REDIS_URL,
-});
+redisHub.init({ url: process.env.REDIS_URL });
 ```
 
 ## Example: Per-User Namespaced Clients

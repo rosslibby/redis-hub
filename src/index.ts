@@ -16,5 +16,7 @@ function getSharedHub(): RedisHub {
 const redisHub = getSharedHub();
 
 export default redisHub;
-export const redisClient = redisHub.client.bind(redisHub);
-export const defaultClient = redisHub.getDefaultClient.bind(redisHub);
+const redisClient = redisHub.client.bind(redisHub);
+const defaultClient = redisHub.getDefaultClient.bind(redisHub);
+export { redisClient, redisHub, defaultClient };
+export * from './client';

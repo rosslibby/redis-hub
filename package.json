@@ -1,6 +1,6 @@
 {
   "name": "@notross/redis-hub",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
@@ -45,19 +45,20 @@
     "prepare": "ts-node prepare-package.ts"
   },
   "devDependencies": {
-    "@types/node": "^24.1.0",
+    "@types/node": "^25.9.2",
     "@types/redis": "^4.0.11",
-    "nodemon": "^3.1.10",
+    "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
-    "redis": "^5.7.0"
+    "redis": "^6.0.0"
   },
   "exports": {
     ".": {
       "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js"
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/cjs/index.d.ts"
     }
   }
 }
