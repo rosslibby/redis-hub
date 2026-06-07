@@ -62,7 +62,7 @@ In addition to named clients, Redis Hub exposes a default client for convenience
 ### Example: Key/Value
 
 ```ts
-import { defaultClient } from "redis-hub";
+import { defaultClient } from "@notross/redis-hub";
 
 defaultClient().then(async (client) => {
   await client.set('hello', 'world');
@@ -73,7 +73,7 @@ defaultClient().then(async (client) => {
 ### Example: Pub/Sub
 
 ```ts
-import { useClient } from "redis-hub";
+import { useClient } from "@notross/redis-hub";
 
 const subscriber = useClient('subscriber');
 const publisher = useClient('publisher');
