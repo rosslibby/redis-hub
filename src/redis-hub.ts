@@ -47,6 +47,9 @@ export class RedisHub {
    */
   public init(options: ClientOptions): void {
     const { defaultClientName, clientId, ...redisClientOptions } = options;
+    if (options.logging !== undefined) {
+      this.configureLogger({ logs: options.logging });
+    }
 
     this.setDefaultOptions(redisClientOptions);
 
