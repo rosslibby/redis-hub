@@ -1,22 +1,11 @@
-import { RedisHub } from './redis-hub';
+import redisHub from './shared';
+import { useClient } from './helpers';
 
-// Global guard so multiple loads still share one hub in the same runtime
-const GLOBAL_KEY = Symbol.for('notross.redis-hub');
-
-function getSharedHub(): RedisHub {
-  // @ts-ignore
-  if (!(globalThis as any)[GLOBAL_KEY]) {
-    // @ts-ignore
-    (globalThis as any)[GLOBAL_KEY] = new RedisHub();
-  }
-  // @ts-ignore
-  return (globalThis as any)[GLOBAL_KEY];
-}
-
-const redisHub = getSharedHub();
-
-export default redisHub;
 const redisClient = redisHub.client.bind(redisHub);
 const defaultClient = redisHub.getDefaultClient.bind(redisHub);
-export { redisClient, redisHub, defaultClient };
-export * from './client';
+export {
+  defaultClient,
+  redisClient,
+  redisHub,
+  useClient,
+};
