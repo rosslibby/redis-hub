@@ -17,7 +17,7 @@ export class RedisHub {
   private defaultClientName: string = 'default';
   private clients: Record<string, RedisClient> = {};
   private clientOptions: Record<string, RedisClientOptions> = {};
-  private defaultOptions: RedisClientOptions | undefined = {};
+  private defaultOptions: ClientOptions = {};
   private clientLogs: Record<string, LogResult[]> = {};
   private clientLogging: Record<string, boolean> = {};
   public error: any | null = null;
@@ -66,20 +66,20 @@ export class RedisHub {
 
   private createClient(
     clientId: string,
-    options: ClientOptions = {},
+    options?: ClientOptions,
   ): RedisClient {
-    options = options ?? this.defaultOptions;
-    if (!options) {
+    const clientOptions = options ?? this.defaultOptions as ClientOptions;
+    if (!clientOptions) {
       throw new Error(
         `No options provided for '${clientId}' and no default options exist.`
       );
     } else {
-      this.clientLogging[clientId] = Boolean(options.logging);
+      this.clientLogging[clientId] = Boolean(clientOptions.logging);
     }
-    const client = createClient({ ...options, name: clientId });
+    const client = createClient({ ...clientOptions, name: clientId });
     this.handleClientEvents(client, clientId);
     this.clients[clientId] = client;
-    this.clientOptions[clientId] = options;
+    this.clientOptions[clientId] = clientOptions;
     return client;
   }
 
