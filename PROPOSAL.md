@@ -221,6 +221,40 @@ plain alias to the shared instance for anyone who prefers
 `import { redisHub } from '@notross/redis-hub'` destructuring-instance style
 over static-method style — both resolve to the identical hub.
 
+### Per-client handles
+
+`RedisHub.getClient(name)` / `.getClientState(name)` / `.disconnect(name)`
+all repeat the same `clientId` string at every call site. For the common
+case — a file that owns exactly one named client — `RedisHub.handle(name,
+options)` packages that one client's operations together so the name is
+only written once:
+
+```ts
+// publisher.ts
+import { RedisHub } from '@notross/redis-hub';
+
+const publisher = RedisHub.handle('publisher', { redis: { /* per-client override */ } });
+
+export async function publish(channel: string, message: string) {
+  const client = await publisher.client;
+  await client.publish(channel, message);
+}
+
+publisher.getState();          // => { status: 'ready', lastError: null, connectedAt: ... }
+await publisher.disconnect();
+```
+
+`RedisHub.handle(...)` returns synchronously and doesn't connect anything by
+itself — it's a bound closure over one `clientId`, not new hub state.
+`.client` is a memoized promise property: the first access is what actually
+triggers `RedisHub.getClient('publisher')` (and the real connection), every
+later access returns that same promise, so repeated `await publisher.client`
+calls never reconnect or re-fetch. `.getState()` and `.disconnect()` are
+direct passthroughs to `RedisHub.getClientState('publisher')` /
+`RedisHub.disconnect('publisher')` — pure sugar, nothing to keep in sync.
+`RedisHub.getClient(name)` stays available directly for one-off/inline use;
+`.handle(...)` is for the "this file owns this one named client" case.
+
 ### Zero-config resolution
 
 `RedisHub.config(...)` becomes optional, not required. If `getClient()` is
@@ -268,6 +302,8 @@ Key API changes from today:
 - `config()` becomes fully optional — env vars / config file resolution means
   `RedisHub.getClient('publisher')` can be the very first line of code that
   touches the package, no setup file required.
+- New `RedisHub.handle(clientId, options)` for files that own exactly one
+  named client, so the client name isn't repeated at every call site.
 
 Worth deciding explicitly rather than assuming: do you need **Redis Cluster
 or Sentinel** support (`createCluster` from `node-redis`)? Nothing today
