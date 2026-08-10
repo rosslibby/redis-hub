@@ -1,11 +1,17 @@
-import redisHub from './shared';
-import { useClient } from './helpers';
+import { RedisHub } from './redis-hub';
 
-const redisClient = redisHub.client.bind(redisHub);
-const defaultClient = redisHub.getDefaultClient.bind(redisHub);
-export {
-  defaultClient,
-  redisClient,
-  redisHub,
-  useClient,
-};
+/** Convenience alias for the shared hub instance — identical to using `RedisHub`'s statics. */
+const redisHub = RedisHub;
+
+export { RedisHub, redisHub };
+export type {
+  ClientConfig,
+  ClientState,
+  ClientStatus,
+  DisconnectOptions,
+  HubConfig,
+  HubLogger,
+  OnOptionsConflict,
+  RedisClient,
+} from './types';
+export type { ClientHandle } from './handle';

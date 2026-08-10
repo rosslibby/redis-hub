@@ -1,6 +1,6 @@
 # redis-hub: Rewrite Proposal
 
-Status: draft for discussion. Nothing here is implemented yet.
+Status: implemented on this branch as `2.0.0`. Kept here as the design record for the decisions below.
 
 ## TL;DR
 

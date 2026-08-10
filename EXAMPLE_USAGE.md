@@ -1,28 +1,30 @@
 ```ts
-// initialization
-import { redisHub } from '@notross/redis-hub';
+// initialization — optional; skip entirely if REDIS_URL is already set
+import { RedisHub } from '@notross/redis-hub';
+import pino from 'pino';
 
-redisHub.init({
-  logging: false,
-  url: process.env.REDIS_URL,
+RedisHub.config({
+  redis: { url: process.env.REDIS_URL },
+  logger: pino({ level: 'info' }),
+  autoShutdown: true,
 });
 
-// Redis client
-import { useClient } from '@notross/redis-hub';
+// Redis client — no setup needed beyond what's above
+import { RedisHub } from '@notross/redis-hub';
 
 async function getLatestStatus(): Promise<StatusUpdate> {
-  return useClient('status')
-    .then((client) => client.get('status_updates')
-      .then((statuses) => JSON.parse(statuses))
-      .then((updates) => updates[updates.length - 1])
-    );
+  const client = await RedisHub.getClient('status');
+  const statuses = await client.get('status_updates');
+  const updates = JSON.parse(statuses);
+  return updates[updates.length - 1];
 }
 
-// PubSub: publisher utilization
-import { useClient } from '@notross/redis-hub';
+// PubSub: publisher, via a per-client handle so the name is written once
+import { RedisHub } from '@notross/redis-hub';
 
-async function publish(story: NewsStory) {
-  const publisher = await useClient('news-story-publisher', {
+const publisher = RedisHub.handle('news-story-publisher', {
+  redis: {
+    url: process.env.REDIS_URL,
     pingInterval: 60000,
     socket: {
       keepAlive: true,
@@ -31,42 +33,51 @@ async function publish(story: NewsStory) {
         return Math.min(retries * 100, 3000);
       },
     },
-  });
-  publisher.publish(`stories`, JSON.stringify(story));
-  publisher.publish(`stories:${story.provider}`, JSON.stringify(story));
-  story.tags?.forEach((tag: string) =>
-    publisher.publish(`stories:tags:${tag}`, JSON.stringify(story))
+  },
+});
+
+export async function publish(story: NewsStory) {
+  const client = await publisher.client;
+  await client.publish(`stories`, JSON.stringify(story));
+  await client.publish(`stories:${story.provider}`, JSON.stringify(story));
+  await Promise.all(
+    (story.tags ?? []).map((tag) => client.publish(`stories:tags:${tag}`, JSON.stringify(story))),
   );
 }
 
-// PubSub: subscriber utilization
+// PubSub: subscriber, streamed out over SSE
 import Stream from 'stream';
 import { Request, ResponseToolkit } from '@hapi/hapi';
-import { useClient } from '@notross/redis-hub';
+import { RedisHub } from '@notross/redis-hub';
 
 export async function streamNewsStories(
   req: Request,
   h: ResponseToolkit,
 ) {
   const stream = new Stream.PassThrough();
-  const subscriber = await useClient('news-story-subscriber', {
-    pingInterval: 60000,
-    socket: {
-      keepAlive: true,
-      reconnectStrategy: (retries) => {
-        if (retries < 10) return new Error(`Redis subscriber reconnect attempts exhausted.`);
-        return Math.min(retries * 100, 3000);
+  const subscriber = RedisHub.handle('news-story-subscriber', {
+    redis: {
+      url: process.env.REDIS_URL,
+      pingInterval: 60000,
+      socket: {
+        keepAlive: true,
+        reconnectStrategy: (retries) => {
+          if (retries < 10) return new Error(`Redis subscriber reconnect attempts exhausted.`);
+          return Math.min(retries * 100, 3000);
+        },
       },
     },
   });
-  const onMessage = (message: string, channel: string) => {
+
+  const client = await subscriber.client;
+  const onMessage = (message: string) => {
     const data = JSON.parse(message);
     stream.write(`data: ${JSON.stringify(data)}\n\n`);
   };
-  subscriber.pSubscribe(req.params.channelId as string, onMessage);
+  await client.pSubscribe(req.params.channelId as string, onMessage);
 
   req.raw.req.on('close', () => {
-    subscriber.quit();
+    subscriber.disconnect();
     stream.end();
   });
 
