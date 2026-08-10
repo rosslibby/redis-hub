@@ -267,15 +267,20 @@ connection options lazily, once, in this order, and caches the result:
 2. **`REDIS_URL`** — the de facto convention already set by Heroku, Railway,
    Render, Fly, etc. If it's already in the environment, there's nothing left
    to configure.
-3. **`redis-hub.config.json`** at the project root (resolved from `cwd`) —
-   for anything beyond a bare URL that env vars are awkward for (TLS options,
-   socket options, per-named-client overrides). Only covers the
-   JSON-serializable `redis` portion of config — `logger`/`autoShutdown`
-   still require a real `config()` call since they're not expressible as
-   JSON. Deliberately a hand-rolled loader for one well-known filename
-   rather than pulling in `cosmiconfig` — consistent with keeping this a thin
-   wrapper. Worth reconsidering if you want `.js`/`.yaml`/`package.json`-key
-   support later.
+3. **A config file, resolved via [`cosmiconfig`](https://github.com/cosmiconfig/cosmiconfig)**
+   (`cosmiconfig('redis-hub').search()`) — the same tool ESLint, Prettier,
+   Stylelint, and Commitlint use for exactly this problem, rather than a
+   hand-rolled single-filename loader. Searching upward from `cwd`, it picks
+   up (in cosmiconfig's own search order): a `redis-hub` key in
+   `package.json`, `.redis-hubrc(.json|.yaml|.yml|.js|.cjs|.mjs)`, or
+   `redis-hub.config.(js|cjs|mjs|json)` — `.js`/`.cjs`/`.mjs`/`.ts` (with a
+   loader) formats get correct ESM/CJS interop for free, which is genuinely
+   easy to get subtly wrong by hand. **JS/TS-format config files can export
+   the exact same shape you'd pass to `RedisHub.config({...})`** — functions
+   included, so a `redis-hub.config.js` can supply a real `logger` instance
+   or an `onOptionsConflict` handler, not just a bare URL. JSON/YAML formats
+   are naturally limited to the serializable subset (`redis` connection
+   options) since they can't carry functions.
 4. **`redis://localhost:6379`** — last-resort default for local dev, same as
    `node-redis`'s own default.
 
@@ -285,6 +290,23 @@ zero-config path stays legible instead of feeling like silent magic in
 production. An explicit `RedisHub.config(...)` call always overrides all of
 the above, and per-client options passed to `getClient(name, options)`
 override the hub default for that one client, same as today.
+
+**`.env` files are deliberately not this package's concern.** `.env` support
+is really just "is `REDIS_URL` already in `process.env`," and that's
+populated by `dotenv` (or the deploy platform) *before* the hub ever runs —
+step 2 above already covers it for free once that's loaded. The library
+itself should not call `dotenv.config()` internally: a library reaching into
+`.env` loading is presumptuous (wrong `cwd` relative to a monorepo package,
+double-loading if the host app also uses `dotenv`, and it fights whatever
+env strategy — `dotenv-flow`, Docker env, a process manager — the host app
+already has). Worth a line in the README so "why isn't my `.env` picked up"
+has an obvious answer: add `dotenv`/`import 'dotenv/config'` yourself,
+upstream of anything that touches `RedisHub`.
+
+`cosmiconfig` becomes a real `dependency` — it's small, purpose-built, and
+the alternative (hand-rolling multi-format search) means re-implementing
+something this library already gets right, for no benefit given the goal is
+broad mainstream-format support rather than one fixed filename.
 
 Key API changes from today:
 
