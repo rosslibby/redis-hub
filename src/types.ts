@@ -1,40 +1,50 @@
 import { createClient, RedisClientOptions } from 'redis';
 
 export type RedisClient = ReturnType<typeof createClient>;
-export type ClientOptions = RedisClientOptions & {
-  clientId?: string;
+
+export type HubLogger = {
+  debug: (obj: object | string, msg?: string) => void;
+  info: (obj: object | string, msg?: string) => void;
+  warn: (obj: object | string, msg?: string) => void;
+  error: (obj: object | string, msg?: string) => void;
+};
+
+export type OnOptionsConflict = 'throw' | 'warn' | 'ignore';
+
+export type HubConfig = {
+  /** Default connection options used when a client is requested with no per-client override. */
+  redis?: RedisClientOptions;
+  /** Any pino-shaped logger (debug/info/warn/error), or `false` to disable logging entirely. */
+  logger?: HubLogger | false;
+  /** Hook SIGTERM/SIGINT to gracefully disconnect all clients on shutdown. */
+  autoShutdown?: boolean;
+  /** Logical name used by clients that don't specify one of their own. */
   defaultClientName?: string;
-  logging?: boolean;
-}
-
-export type LoggerConfig = {
-  callback?: LoggerCallback;
-  logs: boolean;
-  levels?: LogLevel[];
+  /** What to do when a client already exists and is requested again with different options. */
+  onOptionsConflict?: OnOptionsConflict;
 };
 
-export enum LogLevel {
-  'debug' = 'debug',
-  'error' = 'error',
-  'info' = 'info',
-  'log' = 'log',
-  'warn' = 'warn',
+export type ClientConfig = {
+  redis?: RedisClientOptions;
 };
 
-export type LoggerCallback = (args: LogResult) => void;
-export type LogMethod = (...args: any[]) => void;
+export type ClientStatus =
+  | 'idle'
+  | 'connecting'
+  | 'ready'
+  | 'reconnecting'
+  | 'ended'
+  | 'error';
 
-export type LogResult = {
-  level: string;
-  message: string;
-  args: any[];
+export type ClientState = {
+  status: ClientStatus;
+  lastError: Error | null;
+  connectedAt: number | null;
 };
 
-export type CustomLogger = {
-  debug: LogMethod;
-  error: LogMethod;
-  info: LogMethod;
-  log: LogMethod;
-  warn: LogMethod;
-  logs: LogResult[];
+export type DisconnectOptions = {
+  /** Skip the graceful quit() and kill the socket immediately. */
+  force?: boolean;
+  /** How long to wait for quit() to finish before forcing a hard destroy. Defaults to 5000ms. */
+  timeoutMs?: number;
 };

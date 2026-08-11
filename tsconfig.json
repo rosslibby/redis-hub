@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
     "target": "es2019",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
-    "moduleResolution": "nodenext",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "noEmit": false,
+    "ignoreDeprecations": "6.0",
+    "noEmit": true,
     "resolveJsonModule": true
   },
-  "include": ["src"]
+  "include": ["src", "tests"]
 }
