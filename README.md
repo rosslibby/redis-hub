@@ -214,6 +214,48 @@ const user123 = await getUserClient('123');
 await user123.set('lastLogin', Date.now());
 ```
 
+## Migrating from v1
+
+**v2 is a breaking change.** The v1 `redisHub` singleton, `.init(...)`, and
+`useClient(...)` are gone, replaced by the `RedisHub` static API described
+above (`redisHub` still exists in v2, as a lowercase alias for `RedisHub`).
+Two changes cover most migrations:
+
+1. **Remove the `.init(...)` call**, if you want v2's implicit config — it
+   picks up `REDIS_URL` automatically on first `getClient()` call (see
+   [Zero-config resolution](#zero-config-resolution)).
+
+   ```ts
+   redisHub.init({ logging: false, url: process.env.REDIS_URL });
+   ```
+
+   If you *do* need non-default options (a custom logger, `autoShutdown`,
+   a URL other than `REDIS_URL`), call `RedisHub.config(...)` once at
+   startup instead — see [Explicit config](#explicit-config).
+
+2. **Replace `useClient(...)` with `redisHub.getClient(...)`**, and move any
+   redis-specific connection options for that call under a `redis` key.
+
+   ```ts
+   // before (v1)
+   import { useClient } from '@notross/redis-hub';
+
+   const publisher = await useClient('publisher', {
+     pingInterval: 60000,
+     socket: { keepAlive: true },
+   });
+
+   // after (v2)
+   import { redisHub } from '@notross/redis-hub';
+
+   const publisher = await redisHub.getClient('publisher', {
+     redis: {
+       pingInterval: 60000,
+       socket: { keepAlive: true },
+     },
+   });
+   ```
+
 ---
 ## License
 MIT © [@notross](https://rosslibby.com)
