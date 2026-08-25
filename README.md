@@ -218,34 +218,6 @@ const publisher = await RedisHub.getClient('publisher', {
 });
 ```
 
-## Migrating from v1
-
-This release introduces breaking structural and operational updates:
-
-* **Removal of `.init()`**: Replaced by automatic resolution from environment variables or explicit `RedisHub.config(...)`.
-* **Removal of `useClient`**: Deprecated in favor of `RedisHub.getClient(id, options)` or `redisHub.getClient(...)`.
-* **Nested Connection Options**: Per-client Redis connection parameters must now be nested under a `redis` key.
-
-```ts
-// Legacy (v1)
-import { useClient } from '@notross/redis-hub';
-
-const publisher = await useClient('publisher', {
-  pingInterval: 60000,
-  socket: { keepAlive: true },
-});
-
-// Current (v2)
-import { RedisHub } from '@notross/redis-hub';
-
-const publisher = await RedisHub.getClient('publisher', {
-  redis: {
-    pingInterval: 60000,
-    socket: { keepAlive: true },
-  },
-});
-```
-
 ---
 
 ## Known Gotchas
