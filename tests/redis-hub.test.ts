@@ -40,6 +40,24 @@ describe('RedisHub instance', () => {
     await hub.disconnectAll();
   });
 
+  it('merges a per-client redis override onto the resolved default connection, instead of replacing it', async () => {
+    const hub = new RedisHub({ redis: { url: redisUrl }, logger: false });
+    // No `url`/connection details here on purpose — this must not drop the
+    // hub's default connection and fall back to node-redis's own defaults
+    // (which would try to connect to localhost:6379).
+    const client = await hub.getClient('override-only', { redis: { database: 0 } });
+    expect(hub.getClientState('override-only').status).toBe('ready');
+    await hub.disconnectAll();
+    expect(client).toBeDefined();
+  });
+
+  it('lets a per-client redis override tweak one field while keeping the resolved default connection', async () => {
+    const hub = new RedisHub({ redis: { url: redisUrl }, logger: false });
+    await hub.getClient('override-field', { redis: { database: 1 } });
+    expect(hub.getClientState('override-field').status).toBe('ready');
+    await hub.disconnectAll();
+  });
+
   it('tracks per-client state independently, not as hub-global mutable fields', async () => {
     const hub = new RedisHub({ redis: { url: redisUrl }, logger: false });
     await hub.getClient('pub');

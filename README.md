@@ -220,6 +220,33 @@ const publisher = await RedisHub.getClient('publisher', {
 
 ---
 
+## Known Gotchas
+
+### Reconnect loops against Redis Enterprise / Redis Cloud in containerized environments
+
+`redis-hub` passes your `redis: {...}` options straight through to `createClient()`, so this is really a [`node-redis`](https://github.com/redis/node-redis) behavior to be aware of rather than anything `redis-hub` does itself — but it's easy to lose hours to, so it's worth flagging here.
+
+As of `redis` `^6.x`, RESP3 is the default protocol, which in turn defaults `maintNotifications` to `"auto"`. That silently opts every client into Redis Enterprise/Cloud's maintenance-notification handshake (`CLIENT MAINT_NOTIFICATIONS ON`), meaning the client will honor server-pushed `MOVING` redirects to a different address during cluster maintenance/failover. To decide what kind of address to request (`internal-ip`, `external-fqdn`, etc.), node-redis DNS-resolves your Redis host and classifies it private vs. public — a classification that can differ by network context (e.g., a Docker container's DNS/routing vs. your host machine's).
+
+If you see clients connect fine in one environment but immediately enter a reconnect loop and crash in another — most commonly: works from a local terminal, fails inside Docker — with the *same* connection URL, this is the first thing to check, not a config or credentials problem.
+
+**To confirm**: set `REDIS_DEBUG_MAINTENANCE=1` and `REDIS_EMIT_DIAGNOSTICS=1` in the failing environment. If a `MOVING`/`MIGRATING` push notification logs right before the crash loop starts, this is it.
+
+**To fix**, disable it explicitly (or pin the endpoint type instead of leaving it on `'auto'`):
+
+```ts
+RedisHub.config({
+  redis: {
+    url: process.env.REDIS_URL,
+    maintNotifications: 'disabled',
+    // — or, to keep the feature but stop it from guessing —
+    // maintEndpointType: 'external-ip',
+  },
+});
+```
+
+---
+
 ## License
 
 MIT © [Ross Libby](https://rosslibby.com)

@@ -111,13 +111,16 @@ export class RedisHub {
   public async getClient(clientId: string, options?: ClientConfig): Promise<RedisClient> {
     const existing = this.clients.get(clientId);
     if (existing) {
-      if (options?.redis && this.hasConflictingOptions(clientId, options.redis)) {
-        this.handleOptionsConflict(clientId);
+      if (options?.redis) {
+        const merged = await this.resolveRedisOptions(options.redis);
+        if (this.hasConflictingOptions(clientId, merged)) {
+          this.handleOptionsConflict(clientId);
+        }
       }
       return existing;
     }
 
-    const redisOptions = options?.redis ?? (await this.resolveDefaultRedisOptions());
+    const redisOptions = await this.resolveRedisOptions(options?.redis);
     return this.createClient(clientId, redisOptions);
   }
 
@@ -214,6 +217,21 @@ export class RedisHub {
       );
     }
     return this.hubConfig.redis;
+  }
+
+  /**
+   * Merges a per-client `redis` override onto the hub's resolved default
+   * connection options (hub-wide `config()` call, or zero-config resolution),
+   * rather than replacing the default outright. A per-client override is for
+   * *tweaking* the shared connection (e.g. a different `database` index, an
+   * extra `socket` flag) — it should never silently drop the resolved
+   * host/url/credentials just because the caller only meant to override one
+   * unrelated field. Top-level keys only: a nested object like `socket` is
+   * still replaced wholesale if present in the override, not deep-merged.
+   */
+  private async resolveRedisOptions(override?: RedisClientOptions): Promise<RedisClientOptions> {
+    const defaults = await this.resolveDefaultRedisOptions();
+    return override ? { ...defaults, ...override } : defaults;
   }
 
   private async ensureZeroConfig(): Promise<void> {
