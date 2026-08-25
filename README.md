@@ -220,45 +220,31 @@ const publisher = await RedisHub.getClient('publisher', {
 
 ## Migrating from v1
 
-**v2 is a breaking change.** The v1 `redisHub` singleton, `.init(...)`, and
-`useClient(...)` are gone, replaced by the `RedisHub` static API described
-above (`redisHub` still exists in v2, as a lowercase alias for `RedisHub`).
-Two changes cover most migrations:
+This release introduces breaking structural and operational updates:
 
-1. **Remove the `.init(...)` call**, if you want v2's implicit config — it
-   picks up `REDIS_URL` automatically on first `getClient()` call (see
-   [Zero-config resolution](#zero-config-resolution)).
+* **Removal of `.init()`**: Replaced by automatic resolution from environment variables or explicit `RedisHub.config(...)`.
+* **Removal of `useClient`**: Deprecated in favor of `RedisHub.getClient(id, options)` or `redisHub.getClient(...)`.
+* **Nested Connection Options**: Per-client Redis connection parameters must now be nested under a `redis` key.
 
-   ```ts
-   redisHub.init({ logging: false, url: process.env.REDIS_URL });
-   ```
+```ts
+// Legacy (v1)
+import { useClient } from '@notross/redis-hub';
 
-   If you *do* need non-default options (a custom logger, `autoShutdown`,
-   a URL other than `REDIS_URL`), call `RedisHub.config(...)` once at
-   startup instead — see [Explicit config](#explicit-config).
+const publisher = await useClient('publisher', {
+  pingInterval: 60000,
+  socket: { keepAlive: true },
+});
 
-2. **Replace `useClient(...)` with `redisHub.getClient(...)`**, and move any
-   redis-specific connection options for that call under a `redis` key.
+// Current (v2)
+import { RedisHub } from '@notross/redis-hub';
 
-   ```ts
-   // before (v1)
-   import { useClient } from '@notross/redis-hub';
-
-   const publisher = await useClient('publisher', {
-     pingInterval: 60000,
-     socket: { keepAlive: true },
-   });
-
-   // after (v2)
-   import { redisHub } from '@notross/redis-hub';
-
-   const publisher = await redisHub.getClient('publisher', {
-     redis: {
-       pingInterval: 60000,
-       socket: { keepAlive: true },
-     },
-   });
-   ```
+const publisher = await RedisHub.getClient('publisher', {
+  redis: {
+    pingInterval: 60000,
+    socket: { keepAlive: true },
+  },
+});
+```
 
 ---
 
